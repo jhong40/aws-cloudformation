@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Confluence - Oracle stack
+Resources:
+  ConfluenceVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.200.0.0/16
+      EnableDnsHostnames: 'true'
+      EnableDnsSupport: 'true'
+      Tags:
+      - Key: Name
+        Value: addteq-excellentable-vpc
+  VpcInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  VpcInternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref VpcInternetGateway
+      VpcId: !Ref ConfluenceVPC
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a 
+      CidrBlock: 10.200.11.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+      - Key: Name
+        Value: pub1
+      VpcId: !Ref ConfluenceVPC
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b 
+      CidrBlock: 10.200.21.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+      - Key: Name
+        Value: pub2
+      VpcId: !Ref ConfluenceVPC
+  VpcRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ConfluenceVPC
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VpcInternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VpcInternetGateway
+      RouteTableId: !Ref VpcRouteTable
+  PublicSubnetRtb:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VpcRouteTable
+      SubnetId: !Ref PublicSubnet
+  PublicSubnetRtb1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VpcRouteTable
+      SubnetId: !Ref PublicSubnet1
+  ConfluenceEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: '22'
+        IpProtocol: tcp
+        ToPort: '22'
+      - CidrIp: 0.0.0.0/0
+        FromPort: '80'
+        IpProtocol: tcp
+        ToPort: '80'
+      - CidrIp: 0.0.0.0/0
+        FromPort: '443'
+        IpProtocol: tcp
+        ToPort: '443'
+      - CidrIp: 0.0.0.0/0
+        FromPort: '8090'
+        IpProtocol: tcp
+        ToPort: '8090'
+      - CidrIp: 0.0.0.0/0
+        FromPort: '8091'
+        IpProtocol: tcp
+        ToPort: '8091'
+      - CidrIp: 0.0.0.0/0
+        FromPort: '1521'
+        IpProtocol: tcp
+        ToPort: '1521'
+      VpcId: !Ref ConfluenceVPC
+  ConfluenceEC2:
+    Type: "AWS::EC2::Instance"
+    DependsOn: VpcInternetGatewayAttachment
+    Properties: 
+      AvailabilityZone: us-east-1a 
+      ImageId: ami-05801d0a3c8e4c443 
+      InstanceType: t3.xlarge 
+      KeyName: ConfKeyPair 
+      IamInstanceProfile: ec2tos3 
+      SecurityGroupIds: 
+      - Ref: ConfluenceEC2SecurityGroup
+      SubnetId: !Ref PublicSubnet
+      Tags:
+      - Key: Name
+        Value: confluence 
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          apt-get update
+          apt-get install -y python
+          apt-get install -y python3
+          apt install -y python3-pip
+          apt install -y fontconfig
+          pip3 install ansible
+          pip3 install boto3 
+          ansible-galaxy install alvistack.confluence
+          ansible-galaxy install sfuhrm.adoptopenjdk_role
+          apt install -y awscli
+          aws s3 cp s3://addteq-confluence-oracle/as-conf.yml .
+          ansible-playbook as-conf.yml 
+  myDBSubnetGroup: 
+    Properties: 
+      DBSubnetGroupDescription: Oracle DB Subnet group 
+      SubnetIds: 
+        - !Ref PublicSubnet 
+        - !Ref PublicSubnet1 
+      Tags: 
+        - 
+          Key: Name 
+          Value: OracleSubnetGroup 
+    Type: "AWS::RDS::DBSubnetGroup"
+  ConfluenceDB:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      AvailabilityZone: us-east-1a
+      CopyTagsToSnapshot: true
+      DBSubnetGroupName:
+        Ref: myDBSubnetGroup 
+      CharacterSetName: AL32UTF8
+      EngineVersion: 12.2.0.1.ru-2019-10.rur-2019-10.r1
+      AllocatedStorage: 20
+      StorageType: gp2
+      DBInstanceClass: db.t3.small
+      PreferredMaintenanceWindow: sat:06:33-sat:07:03
+      StorageEncrypted: false
+      AutoMinorVersionUpgrade: false
+      Engine: oracle-se2
+      MasterUsername: admin
+      MasterUserPassword: Test1234 
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: 10:22-10:52
+      VPCSecurityGroups:
+      - !GetAtt ConfluenceEC2SecurityGroup.GroupId
+      DBInstanceIdentifier: confdb 
+      DBName: confdb 
+      MultiAZ: false
+      PubliclyAccessible: false
+      LicenseModel: license-included
+      DeletionProtection: false
+
