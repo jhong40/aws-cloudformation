@@ -1,0 +1,9 @@
+create user "APPUSER" identified by "xxxx" default tablespace USERS quota unlimited on USERS;
+grant connect to "APPUSER";
+grant resource to "APPUSER";
+grant create table to "APPUSER";
+grant create sequence to "APPUSER";
+grant create trigger to "APPUSER";
+exit;
+
+

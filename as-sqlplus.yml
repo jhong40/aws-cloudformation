@@ -1,0 +1,43 @@
+---
+- name: Install Confluence
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Simple GET operation
+      aws_s3:
+        bucket: aaa-confluence-oracle 
+        object: /oracle-instantclient11.2-sqlplus-11.2.0.4.0-1.x86_64.rpm
+        dest: /tmp/oracle-instantclient11.2-sqlplus-11.2.0.4.0-1.x86_64.rpm 
+        mode: get
+    - name: Simple GET operation
+      aws_s3:
+        bucket: aaa-confluence-oracle 
+        object: /oracle-instantclient11.2-basic-11.2.0.4.0-1.x86_64.rpm
+        dest: /tmp/oracle-instantclient11.2-basic-11.2.0.4.0-1.x86_64.rpm
+        mode: get
+    - name: Simple GET operation
+      aws_s3:
+        bucket: aaa-confluence-oracle 
+        object: /export.txt
+        dest: /tmp/export.txt  
+        mode: get
+    - name: Install alient 
+      apt:
+        name: alien 
+        state: present
+    - name: Install libaio1 
+      apt:
+        name: libaio1 
+        state: present
+    - name: Execute command 
+      command: alien -i /tmp/oracle-instantclient11.2-basic-11.2.0.4.0-1.x86_64.rpm
+    - name: Execute command 
+      command: alien -i /tmp/oracle-instantclient11.2-sqlplus-11.2.0.4.0-1.x86_64.rpm
+    - name: Echo Oracle_HOME 
+      command: /usr/lib/oracle/11.2/client64/bin/sqlplus 'admin/xxxxx@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=xxxx.xxx.com)(PORT=1521))(CONNECT_DATA=(SID=confdb)))'  @mysql.txt
+      register: hello
+      environment:
+        ORACLE_HOME: /usr/lib/oracle/11.2/client64 
+        LD_LIBRARY_PATH: /usr/lib/oracle/11.2/client64/lib
+    - debug: msg="{{ hello.stdout }}"

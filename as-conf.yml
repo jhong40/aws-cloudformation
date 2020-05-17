@@ -1,0 +1,20 @@
+---
+- name: Install Confluence
+  hosts: localhost
+  connection: local
+  become: true
+  roles:
+    - role: sfuhrm.adoptopenjdk_role 
+      adoptopenjdk_package: 'adoptopenjdk-8-hotspot'
+    - role: alvistack.confluence
+  tasks:
+    - name: Simple GET operation
+      aws_s3:
+        bucket: addteq-confluence-oracle 
+        object: /ojdbc8.jar
+        dest: /opt/atlassian/confluence/confluence/WEB-INF/lib/ojdbc8.jar 
+        mode: get
+    - name: Restart confluence 
+      service:
+        name: confluence 
+        state: restarted
