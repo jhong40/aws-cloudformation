@@ -9,7 +9,7 @@ Resources:
       EnableDnsSupport: 'true'
       Tags:
       - Key: Name
-        Value: addteq-excellentable-vpc
+        Value: aaa-excellentable-vpc
   VpcInternetGateway:
     Type: AWS::EC2::InternetGateway
   VpcInternetGatewayAttachment:
@@ -116,7 +116,7 @@ Resources:
           ansible-galaxy install alvistack.confluence
           ansible-galaxy install sfuhrm.adoptopenjdk_role
           apt install -y awscli
-          aws s3 cp s3://addteq-confluence-oracle/as-conf.yml .
+          aws s3 cp s3://aaaa-confluence-oracle/as-conf.yml .
           ansible-playbook as-conf.yml 
   myDBSubnetGroup: 
     Properties: 
