@@ -10,7 +10,7 @@
   tasks:
     - name: Simple GET operation
       aws_s3:
-        bucket: addteq-confluence-oracle 
+        bucket: aaa-confluence-oracle 
         object: /ojdbc8.jar
         dest: /opt/atlassian/confluence/confluence/WEB-INF/lib/ojdbc8.jar 
         mode: get
